@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% load static i18n wagtailcore_tags wagtailimages_tags puput_tags social_share wagtailroutablepage_tags sekizai_tags %}
+
+{% block title %}
+{% if search_term %}
+{{ search_term }} | {{ blog_page.title }}
+{% else %}
+{{ block.super }}
+{% endif %}
+{% endblock title %}
+
+{% block meta_title %}
+{% if search_term %}
+{% trans 'Entries for' %} {{ search_type }} {{ search_term }}
+{% else %}
+{{ block.super }}
+{% endif %}
+{% endblock meta_title %}
+
+{% block meta_description %}
+{% if search_term %}
+{% trans 'Entries for' %} {{ search_type }} {{ search_term }}
+{% else %}
+{{ block.super }}
+{% endif %}
+{% endblock meta_description %}
+
+{% block social_share %}
+{% image blog_page.header_image fill-800x450 as share_image %}
+<meta property="og:title" content="{{ blog_page.title }}" />
+<meta property="og:description" content="{{ blog_page.description }}" />
+<meta property="og:url" content="{% canonical_url %}" />
+{% if blog_page.header_image %}
+<meta property="og:image" content="{% image_url share_image.url %}" />
+<meta property="og:image:width" content="800" />
+<meta property="og:image:height" content="450" />
+<meta name="twitter:image" content="{% image_url share_image.url %}" />
+{% endif %}
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{ blog_page.title }}" />
+<meta name="twitter:description" content="{{ blog_page.description }}" />
+{% endblock social_share %}
+{% block hidden_menu %}
+{% addtoblock "css" %}
+<style>
+ .secondary.pointing.menu .toc.item {
+     display: none;
+ }
+ @media only screen and (max-width: 700px ) {
+
+	 .secondary.pointing.menu .item,
+	 .secondary.pointing.menu .menu {
+		 display: none;
+	 }
+	 .secondary.pointing.menu .toc.item {
+		 display: block;
+	 }
+ }
+</style>
+{% endaddtoblock "css"  %}
+<!-- Sidebar Menu -->
+<div class="ui vertical inverted sidebar menu">
+    <a href="/" class="active item">Home_Sidebar</a>
+    <a class="item">Work</a>
+    <a class="item">Company</a>
+    <a class="item">Careers</a>
+    <a class="item">Login</a>
+    <a class="item">Signup</a>
+</div>
+{% endblock hidden_menu %}
+
+{% block main_sticky_part_content %}
+<!-- Page Contents -->
+<!-- Top horisontal menu -->
+<div class="ui container">
+	<div class="ui large top secondary pointing menu">
+	    <a class="toc item">
+			<i class="sidebar icon"></i>
+	    </a>
+		<a href="/" class="active item">Home</a>
+		<a class="item">WorkEntry</a>
+		<a class="item">Company</a>
+		<a class="item">Careers</a>
+		<div class="right item">
+				<a class="ui button">{% trans "Log in" %}</a>&nbsp;
+				<a class="ui button">{% trans "Sign Up" %}</a>
+		</div>
+    </div>
+</div>
+{% with per_page=blog_page.num_entries_page %}
+{# 'paginate' tag cannot render dotted variables, so we need to create a context var #}
+{% paginate per_page entries %}
+{% if search_term %}
+<div class="row searchTerm">{% trans 'Entries for' %} {{ search_type }} "{{ search_term }}"</div>
+{% endif %}
+{% for entry in entries %}
+{% entry_url entry blog_page as post_url %}
+<article class="grid">
+    {% include 'puput/entry_page_header.html' %}
+    <section class="row">
+        {% if entry.header_image %}
+        {% image entry.header_image fill-800x240 as header_image %}
+        <img alt="{{ entry.header_image.title }}" src="{{ header_image.url }}">
+        {% endif %}
+		<p>
+			{% include 'puput/entry_links.html' %}
+		</p>
+    </section>
+    <section class="row article">
+        {% if entry.excerpt %}
+        {{ entry.excerpt|richtext }}
+        {% else %}
+        {{ entry.body|richtext|truncatewords_html:70 }}
+        {% endif %}
+        <div class="ui horizontal list">
+            <div class="item">
+                {% post_to_facebook post_url '<i class="facebook icon"></i>' %}
+            </div>
+            <div class="item">
+                {% post_to_twitter entry.title post_url '<i class="twitter icon"></i>' %}
+            </div>
+            <div class="item">
+                {% post_to_linkendin post_url '<span><i class="linkedin icon"></i>' %}
+            </div>
+            <p><a href="{{ post_url }}"><button class="ui button">{% trans 'Continue reading' %} &raquo;</button></a></p>
+        </div>
+    </section>
+</article>
+{% empty %}
+<span>{% trans 'No results found.' %}</span>
+{% endfor %}
+
+<div class="ui pagination menu">
+    {% show_paginator %}
+</div>
+{% endwith %}
+{% endblock main_sticky_part_content %}
+
+{% block extra_content %}
+<div class="rss-sitemap">
+	{% language '' %}
+    <a href="{% feeds_url blog_page %}" target="_blank" title="RSS">
+        <i class="ui icon rss"></i> <span>{% trans 'Feed RSS' %}</span>
+    </a>
+	{% endlanguage %}
+</div>
+<form name="search_form" class="ui form" method="get" action="{% routablepageurl blog_page 'entries_search' %}">
+    <div class="field">
+        <input type="search" name="q" placeholder="{% trans 'Search' %}">
+    </div>
+    <button class="ui button" type="submit">{% trans 'Search' %}</button>
+</form>
+
+
+{% if blog_page.display_last_entries %}
+<ul class="">
+    <h4>{% trans 'Last Entries' %}</h4>
+    {% recent_entries blog_page.num_last_entries %}
+</ul>
+{% endif %}
+{% if blog_page.display_popular_entries %}
+<ul class="">
+    <h4>{% trans 'Popular Entries' %}</h4>
+    {% popular_entries blog_page.num_popular_entries %}
+</ul>
+{% endif %}
+{% if blog_page.display_categories %}
+<ul class="">
+    <h4>{% trans 'Categories' %}</h4>
+    {% categories_list %}
+</ul>
+{% endif %}
+{% if blog_page.display_tags %}
+<ul class="">
+    <h4>{% trans 'Tags' %}</h4>
+    {% tags_list %}
+</ul>
+{% endif %}
+{% if blog_page.display_archive %}
+<ul class="">
+    <h4>{% trans 'Archive' %}</h4>
+    {% archives_list %}
+</ul>
+{% endif %}
+</div>
+</div>
+{% addtoblock "js" %}
+<script>
+ $(document)
+		 .ready(function(){
+		 // create sidebar and attach to menu open
+		 $('.ui.sidebar')
+			 .sidebar('attach events', '.toc.item')
+		 ;
+     })
+ ;
+</script>
+{% endaddtoblock "js" %}
+{% endblock extra_content %}
